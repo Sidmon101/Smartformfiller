@@ -1,0 +1,29 @@
+# Streamlit UI
+streamlit>=1.36.0
+
+# Environment variables
+python-dotenv>=1.0.1
+
+# LangChain core
+langchain>=0.3.0
+
+# LangGraph agent framework
+langgraph>=0.2.0
+
+# LangSmith optional tracing
+langsmith>=0.3.13
+
+# Hugging Face for free-tier LLM
+huggingface-hub>=0.16.4
+transformers>=4.36.0
+accelerate==1.12.0
+
+
+# Data and typing utilities
+pandas>=2.2.0
+pydantic>=2.6.0
+typing-extensions>=4.9.0
+
+# Optional: progress bars and HTTP requests
+tqdm>=4.66.0
+httpx>=0.24.1

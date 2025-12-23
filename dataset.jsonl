@@ -1,0 +1,4 @@
+
+{"inputs":{"form_type":"Leave Request","conversation":["EMP1234","user@company.com","manager@company.com","Vacation","2025-12-26","2025-12-30","Family trip"]},"outputs":{"status":"COMPLETE","required_keys":["employee_id","employee_email","manager_email","leave_type","leave_start_date","leave_end_date"]}}
+{"inputs":{"form_type":"IT Access","conversation":["EMP9999","alex@company.com","Jira","Read","2025-12-22","Need access for sprint work","lead@company.com"]},"outputs":{"status":"COMPLETE","required_keys":["employee_id","employee_email","system_name","access_level","start_date","justification","approver_email"]}}
+{"inputs":{"form_type":"Expense Claim","conversation":["123456","user@company.com","2025-12-20","1999.50","INR","Travel","Taxi to client site","yes","manager@company.com"]},"outputs":{"status":"COMPLETE","required_keys":["employee_id","employee_email","expense_date","amount","currency","category","description","receipt_attached","manager_email"]}}
