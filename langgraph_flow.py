@@ -1,18 +1,24 @@
-from langgraph.graph import StateGraph, END
+# langgraph_flow.py
+
+from langgraph.graph import StateGraph
+from agent_graph import process_input
 from graph_state import AgentState
-from agent_graph import agent_step
 
 
 def build_graph():
-    graph = StateGraph(AgentState)
+    builder = StateGraph(AgentState)
 
-    def agent_node(state: AgentState):
-        return agent_step(state, state.get("last_user_input"))
+    builder.add_node("process", process_input)
+    builder.set_entry_point("process")
+    builder.set_finish_point("process")
 
-    graph.add_node("agent", agent_node)
-    graph.set_entry_point("agent")
+    return builder.compile()
+graph = build_graph()
 
-    # 🔑 ALWAYS END after one execution
-    graph.add_edge("agent", END)
+g = graph.get_graph()
 
-    return graph.compile()
+print("NODES:", g.nodes)
+print("EDGES:", g.edges)
+
+
+

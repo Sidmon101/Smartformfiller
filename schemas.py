@@ -1,31 +1,71 @@
-from dataclasses import dataclass
-from typing import Callable, Optional, Dict, Any
+# schemas.py
+
 from validators import (
-    parse_text, parse_date_yyyy_mm_dd, parse_amount,
-    validate_required, validate_date, validate_amount
+    validate_required,
+    validate_date,
+    validate_date_range,
+    validate_yes_no,
+    validate_amount,
+    parse_date_yyyy_mm_dd,
+    parse_text,
+    parse_amount,
+    parse_yes_no,
 )
 
-@dataclass(frozen=True)
-class FieldSpec:
-    name: str
-    label: str
-    required: bool
-    parser: Callable[[str], Any]
-    validator: Callable[[Any, Dict[str, Any]], Optional[str]]
-    hint: str = ""
-
-FORM_TYPES = ["Leave Request", "Expense Claim"]
-
-FORM_SPECS = {
+FORM_TYPES = {
     "Leave Request": {
-        "employee_name": FieldSpec("employee_name", "Employee Name", True, parse_text, validate_required, "Full name"),
-        "start_date": FieldSpec("start_date", "Start Date", True, parse_date_yyyy_mm_dd, validate_date, "YYYY-MM-DD"),
-        "end_date": FieldSpec("end_date", "End Date", True, parse_date_yyyy_mm_dd, validate_date, "YYYY-MM-DD"),
-        "reason": FieldSpec("reason", "Reason for Leave", True, parse_text, validate_required, "Short explanation"),
+        "title": "Leave Request",
+        "fields": {
+            "employee_name": {
+                "question": "What is your full name?",
+                "parser": parse_text,
+                "validators": [validate_required],
+            },
+            "start_date": {
+                "question": "Start date of leave (YYYY-MM-DD)",
+                "parser": parse_date_yyyy_mm_dd,
+                "validators": [validate_required, validate_date],
+            },
+            "end_date": {
+                "question": "End date of leave (YYYY-MM-DD)",
+                "parser": parse_date_yyyy_mm_dd,
+                "validators": [
+                    validate_required,
+                    validate_date,
+                    validate_date_range("start_date", "end_date"),
+                ],
+            },
+            "is_paid_leave": {
+                "question": "Is this a paid leave? (yes/no)",
+                "parser": parse_yes_no,
+                "validators": [validate_yes_no],
+            },
+        },
     },
+
     "Expense Claim": {
-        "expense_date": FieldSpec("expense_date", "Expense Date", True, parse_date_yyyy_mm_dd, validate_date, "YYYY-MM-DD"),
-        "amount": FieldSpec("amount", "Amount", True, parse_amount, validate_amount, "Numeric value"),
-        "description": FieldSpec("description", "Description", True, parse_text, validate_required, "Expense details"),
-    }
+        "title": "Expense Claim",
+        "fields": {
+            "employee_id": {
+                "question": "Enter your employee ID",
+                "parser": parse_text,
+                "validators": [validate_required],
+            },
+            "expense_date": {
+                "question": "Expense date (YYYY-MM-DD)",
+                "parser": parse_date_yyyy_mm_dd,
+                "validators": [validate_required, validate_date],
+            },
+            "amount": {
+                "question": "Expense amount",
+                "parser": parse_amount,
+                "validators": [validate_required, validate_amount],
+            },
+            "description": {
+                "question": "Expense description",
+                "parser": parse_text,
+                "validators": [validate_required],
+            },
+        },
+    },
 }

@@ -1,3 +1,20 @@
+# app.py
+import os
+from dotenv import load_dotenv
+
+load_dotenv()  # 🔑 THIS IS REQUIRED
+
+from langcheck import init_langsmith
+init_langsmith()
+from langsmith import traceable
+
+@traceable(name="startup_test")
+def _langsmith_test():
+    return "LangSmith is alive"
+
+_langsmith_test()
+
+
 import streamlit as st
 from datetime import datetime
 
@@ -44,7 +61,7 @@ left_spacer, main_col, right_spacer = st.columns([2, 6, 2])
 with main_col:
 
     # ======================================================
-    # Main Header
+    # Header
     # ======================================================
     st.markdown(
         "<h1 style='margin-bottom:0.25rem;'>🧠 Smart Form Filler</h1>",
@@ -52,7 +69,7 @@ with main_col:
     )
 
     # ======================================================
-    # Form type selector (compact, top-left)
+    # Form type selector
     # ======================================================
     col_form_type, _ = st.columns([3, 6])
     with col_form_type:
@@ -96,11 +113,6 @@ with main_col:
         st.session_state.state = init_state(form_type)
         st.session_state.mode = "FILLING"
 
-        # Ask first question immediately
-        st.session_state.state = st.session_state.graph.invoke(
-            st.session_state.state
-        )
-
     state = st.session_state.state
 
     # ======================================================
@@ -143,10 +155,6 @@ with main_col:
                     st.session_state.pending_save = False
                     st.session_state.mode = "FILLING"
                     st.session_state.state = init_state(form_type)
-
-                    st.session_state.state = st.session_state.graph.invoke(
-                        st.session_state.state
-                    )
                     st.rerun()
 
             with col2:
@@ -157,15 +165,14 @@ with main_col:
         st.stop()
 
     # ======================================================
-    # FILLING MODE — Question
+    # FILLING MODE — QUESTION (SCHEMA-DRIVEN ONLY)
     # ======================================================
-    question = None
-    for msg in reversed(state["messages"]):
-        if msg["role"] == "assistant":
-            question = msg["content"]
-            break
+    pending_field = state.get("pending_field")
 
-    if question:
+    if pending_field:
+        field_schema = FORM_TYPES[form_type]["fields"].get(pending_field)
+        question = field_schema["question"]
+
         st.markdown(
             f"""
             <div style="
@@ -181,23 +188,22 @@ with main_col:
         )
 
     # ======================================================
-    # Answer input and Submit button (compact)
+    # Answer input
     # ======================================================
-    if "answer_input" not in st.session_state:
-        st.session_state.answer_input = ""
-
     answer = st.text_input(
         "",
         key="answer_input",
         placeholder="Type your answer here..."
     )
 
-    # Submit button in a small column so it doesn't stretch
+    # ======================================================
+    # Submit button
+    # ======================================================
     col_submit, _ = st.columns([2, 6])
     with col_submit:
         if st.button("Submit"):
             if answer.strip():
                 state["last_user_input"] = answer
                 st.session_state.state = st.session_state.graph.invoke(state)
-                st.session_state.state["last_user_input"] = None
+                st.session_state.pop("answer_input", None)
                 st.rerun()

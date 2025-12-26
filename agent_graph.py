@@ -1,63 +1,63 @@
-from schemas import FORM_SPECS
+# agent_graph.py
+
+from schemas import FORM_TYPES
 from graph_state import AgentState
+from langsmith import traceable
 
 
-def init_state(form_type: str):
-    return AgentState(
-        messages=[],
-        form_data={},
-        pending_field=None,
-        status="IN_PROGRESS",
-        last_user_input=None,
-        form_type=form_type,
-    )
+def init_state(form_type: str) -> AgentState:
+    fields = list(FORM_TYPES[form_type]["fields"].keys())
+    return {
+        "messages": [],
+        "form_data": {},
+        "pending_field": fields[0],
+        "status": "IN_PROGRESS",
+        "last_user_input": None,
+        "form_type": form_type,
+    }
 
 
-def agent_step(state: AgentState, user_input: str | None):
-    form_type = state["form_type"]
-    specs = FORM_SPECS[form_type]
+@traceable(name="process_form_input")
+def process_input(state: AgentState) -> AgentState:
+    if state["status"] == "COMPLETE":
+        return state
 
-    # 1️⃣ Process user input for the pending field
-    if user_input and state.get("pending_field"):
-        field_name = state["pending_field"]
-        field = specs[field_name]
+    pending = state.get("pending_field")
+    raw_input = state.get("last_user_input")
 
-        try:
-            value = field.parser(user_input)
-            error = field.validator(value, state["form_data"])
+    if not pending or raw_input is None:
+        return state
 
-            if error:
-                state["messages"].append({
-                    "role": "assistant",
-                    "content": f"Invalid input for {field.label}: {error}"
-                })
-                return state
+    field_schema = FORM_TYPES[state["form_type"]]["fields"][pending]
+    parser = field_schema.get("parser", lambda x: x)
 
-            state["form_data"][field_name] = value
-            state["pending_field"] = None
+    try:
+        parsed_value = parser(raw_input)
+    except Exception:
+        state["messages"].append({
+            "role": "assistant",
+            "content": "Invalid format. Please try again."
+        })
+        return state
 
-        except Exception as e:
+    for validator in field_schema.get("validators", []):
+        error = validator(parsed_value, state["form_data"])
+        if error:
             state["messages"].append({
                 "role": "assistant",
-                "content": f"Invalid input: {str(e)}"
+                "content": error
             })
             return state
 
-    # 2️⃣ Ask next missing required field
-    for name, spec in specs.items():
-        if spec.required and name not in state["form_data"]:
-            state["pending_field"] = name
-            state["messages"].append({
-                "role": "assistant",
-                "content": f"{spec.label}? ({spec.hint})"
-            })
-            return state
+    state["form_data"][pending] = parsed_value
 
-    # 3️⃣ Form complete
-    state["status"] = "COMPLETE"
-    state["messages"].append({
-        "role": "assistant",
-        "content": "Form complete ✅"
-    })
+    fields = list(FORM_TYPES[state["form_type"]]["fields"].keys())
+    idx = fields.index(pending)
+
+    if idx + 1 < len(fields):
+        state["pending_field"] = fields[idx + 1]
+    else:
+        state["pending_field"] = None
+        state["status"] = "COMPLETE"
 
     return state
